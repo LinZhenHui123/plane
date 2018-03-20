@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html>
+
+	<head>
+		<meta charset="UTF-8">
+		<title></title>
+		<link rel="stylesheet" type="text/css" href="dahuiji.css" />
+	</head>
+
+	<body>
+		<div id="main" class="main">
+			<ul id="options">
+				<li>灰常难</li>
+				<li>难</li>
+				<li>简单</li>
+				<li>灰常简单</li>
+			</ul>
+
+		</div>
+		<div id="ji">积分</div>
+	</body>
+	<script type="text/javascript">
+		//		1.开始界面
+		//			主界面
+		//			选项
+		//		2.logo
+		//			logo
+		//			loading
+		//			背景图滚动
+		//		3.游戏开始
+		//			我的飞机
+		//			子弹
+		//			敌机
+
+		//面向对象 创建一个Dhj对象 在对象上添加元素
+		let num = 0;
+		let sum = 0;
+
+		function Dhj() {
+			//获取页面
+			this.main = $("main");
+			//获取选项
+			this.btn = $("options").children;
+			//耦合 init
+			this.init();
+
+		}
+		//在对象原型里面写方法
+		Dhj.prototype.init = function() {
+			//onclick中this指向
+			let that = this;
+			//获取是哪个选项
+			this.index = 0;
+			for(let i = 0; i < this.btn.length; i++) {
+				this.btn[i].onclick = function() {
+					//耦合下一步 加载页面
+					that.loading();
+					that.index = i;
+				}
+			}
+
+		}
+		//加载页面
+		Dhj.prototype.loading = function() {
+			//选项消失
+			this.btn[0].parentNode.remove();
+			//创建出logo和加载图标
+			this.logo = Cj("logo");
+			this.loading = Cj("loading");
+			var that = this;
+			var mainSpeed = 0;
+
+			//背景图滚动
+
+			clearInterval(this.t4);
+			clearInterval(this.t5);
+			this.t4 = setInterval(function() {
+				mainSpeed += 2;
+				that.main.style.backgroundPositionY = mainSpeed + "px";
+			}, 30)
+
+			//加载图标的动画
+			var loadIndex = 0;
+			this.t5 = setInterval(function() {
+				loadIndex++;
+				that.loading.style.backgroundImage = "url(images/loading" + (loadIndex % 3 + 1) + ".png)";
+			}, 300)
+
+			//设定定时器 加载页面转换
+			setTimeout(function() {
+				that.logo.remove();
+				that.loading.remove();
+				//跳转游戏开始
+				that.gameStart();
+			}, 1000)
+		}
+
+		Dhj.prototype.gameStart = function() {
+			//创建我的飞机
+			plane.init(this.main);
+			//创建子弹
+			plane.fire(this.index);
+			//创建敌机
+			this.t1 = setInterval(() => {
+				//随机出现小飞机
+				Math.random() > 0.5 ? new Enemy(this.main).init(1) : "";
+			}, 1000)
+			this.t2 = setInterval(() => {
+				//随机出现中飞机
+				Math.random() > 0.6 ? new Enemy(this.main).init(2) : "";
+			}, 1500)
+			this.t3 = setInterval(() => {
+				//随机出现大飞机
+				Math.random() > 0.8 ? new Enemy(this.main).init(3) : "";
+			}, 3000)
+			//创建记分牌
+		}
+		new Dhj();
+
+		var plane = {
+			init: function(main) {
+				this.main = main
+				this.mp = Cj("my-warplain");
+				this.mp.style.bottom = 0;
+				this.mp.style.left = (this.main.offsetWidth - this.mp.offsetWidth) / 2 + "px";
+				document.onmousemove = (eve) => {
+					var e = eve || window.event;
+					this.move(e);
+				}
+			},
+			move: function(e) {
+				let l = e.clientX - this.main.offsetLeft - this.mp.offsetWidth / 2;
+				let t = e.clientY - this.mp.offsetHeight / 2;
+				let max = this.main.offsetWidth - this.mp.offsetWidth;
+
+				l = l < 0 ? 0 : l;
+				l = l > max ? max : l;
+
+				this.mp.style.left = l + "px";
+				this.mp.style.top = t + "px";
+			},
+			fire: function(index) {
+				switch(index) {
+					case 0:
+						this.firespeed = 1000;
+						break;
+					case 1:
+						this.firespeed = 800;
+						break;
+					case 2:
+						this.firespeed = 400;
+						break;
+					case 3:
+						this.firespeed = 100;
+						break;
+				};
+				//设置子弹速度
+				this.timer = setInterval(() => {
+					this.aBullet.push(new Bullet());
+				}, this.firespeed)
+
+			},
+			aBullet: [],
+			die: function() {
+				let l = this.mp.offsetLeft;
+				let t = this.mp.offsetTop;
+				this.mp.remove();
+				console.log(this.timer)
+				clearInterval(this.timer);
+				this.mpdie = Cj("my-warplain")
+				this.mpdie.style.left = l + "px";
+				this.mpdie.style.top = t + "px";
+
+				var loadIndex = 0;
+				setInterval(() => {
+					loadIndex++;
+					this.mpdie.style.backgroundImage = "url(images/me_die" + (loadIndex % 4 + 1) + ".png)";
+				}, 500)
+				setTimeout(() => {
+					this.mpdie.remove();
+					alert("GAMEOVER");
+					location.reload();
+				}, 2000)
+
+			}
+
+		}
+
+		function Bullet() {
+			this.init();
+		}
+
+		Bullet.prototype = {
+			constructor: Bullet,
+			init: function() {
+				this.ele = Cj("bullet");
+				this.ele.style.left = plane.mp.offsetLeft + plane.mp.offsetWidth / 2 - this.ele.offsetWidth / 2 + "px";
+				this.ele.style.top = plane.mp.offsetTop - this.ele.offsetHeight + "px";
+
+				this.move();
+			},
+			move: function() {
+				let that = this;
+				this.ele.timer = setInterval(() => {
+					this.ele.style.top = this.ele.offsetTop - 5 + "px";
+					if(this.ele.offsetTop < 0) {
+						this.die();
+					}
+				}, 50)
+			},
+			die: function() {
+				clearInterval(this.ele.timer);
+				this.ele.className = "bullet_die";
+				setTimeout(() => {
+					this.ele.remove();
+					for(let i = 0; i < plane.aBullet.length; i++) {
+						if(plane.aBullet[i] == this) {
+							plane.aBullet.splice(i, 1);
+						}
+					}
+				}, 100)
+			}
+		}
+
+		class Enemy {
+			constructor(main) {
+				//在这里接受参数 
+				this.main = main;
+			}
+			init(type) {
+				switch(type) {
+					case 1:
+						this.ele = Cj("enemy-small");
+						this.speed = 5;
+						this.hp = 5;
+						break;
+					case 2:
+						this.ele = Cj("enemy-middle");
+						this.speed = 3;
+						this.hp = 10;
+						break;
+					case 3:
+						this.ele = Cj("enemy-large");
+						this.speed = 1;
+						this.hp = 20;
+						break;
+				}
+
+				let max = this.main.offsetWidth - this.ele.offsetWidth;
+				this.ele.style.top = -this.ele.offsetHeight + "px";
+				this.ele.style.left = Math.round(Math.random() * max) + "px";
+
+				this.move();
+			}
+
+			move() {
+				this.ele.timer = setInterval(() => {
+					this.ele.style.top = this.ele.offsetTop + this.speed + "px";
+					if(this.ele.offsetTop > this.main.offsetHeight) {
+						this.die();
+					}
+					//碰撞检测
+					for(let i = 0; i < plane.aBullet.length; i++) {
+						if(plane.aBullet[i].ele.offsetLeft + plane.aBullet[i].ele.offsetWidth > this.ele.offsetLeft &&
+							plane.aBullet[i].ele.offsetLeft < this.ele.offsetLeft + this.ele.offsetWidth &&
+							plane.aBullet[i].ele.offsetTop < this.ele.offsetTop + this.ele.offsetHeight) {
+							//发布者修改信息，被订阅者接收到
+							plane.aBullet[i].die();
+							this.hp--;
+							if(this.hp == 0) {
+								this.die();
+								//计分--------------------------------------------------------
+								switch(this.speed) {
+									case 5:
+										num = 1
+										break;
+									case 3:
+										num = 2
+										break;
+									case 1:
+										num = 5
+										break;
+								}
+								sum = sum + num;
+								$("ji").innerHTML = "积分" + sum;
+
+							}
+						}
+					}
+					//撞机死亡----------------------------
+					if(plane.mp.offsetLeft + plane.mp.offsetWidth > this.ele.offsetLeft &&
+						plane.mp.offsetLeft < this.ele.offsetLeft + this.ele.offsetWidth &&
+						plane.mp.offsetTop < this.ele.offsetTop + this.ele.offsetHeight &&
+						plane.mp.offsetTop + plane.mp.offsetHeight > this.ele.offsetTop) {
+						//							console.log("死啦")
+						plane.die();
+
+						//						clearInterval()
+					}
+
+				}, 50)
+			}
+			die() {
+				clearInterval(this.ele.timer);
+				//敌机死亡时的效果------------------------------------------------------------------------------
+				let l = this.ele.offsetLeft;
+				let t = this.ele.offsetTop;
+				let n = this.speed;
+				this.ele.remove();
+				clearInterval(this.timer);
+				switch(n) {
+					case 5:
+						this.mpdie = Cj("plain1_die1")
+						break;
+					case 3:
+						this.mpdie = Cj("plain2_die1")
+						break;
+					case 1:
+						this.mpdie = Cj("plain3_die1")
+						break;
+				}
+				this.mpdie.style.left = l + "px";
+				this.mpdie.style.top = t + "px";
+
+				var loadIndex = 0;
+				switch(n) {
+					case 5:
+						new die(this.mpdie, 1, 3, 1500)
+						break;
+					case 3:
+						new die(this.mpdie, 2, 4, 2000)
+						break;
+					case 1:
+						new die(this.mpdie, 3, 6, 3000)
+						break;
+				}
+
+				function die(mpdie, n1, n2, time1) {
+					setInterval(() => {
+						this.mpdie = mpdie;
+						loadIndex++;
+						this.mpdie.style.backgroundImage = "url(images/plain" + n1 + "_die" + (loadIndex % n2 + 1) + ".png)";
+					}, 500)
+					setTimeout(() => {
+						this.mpdie.remove();
+					}, time1)
+				}
+			}
+
+		}
+
+		function $(id) {
+			return document.getElementById(id);
+		}
+
+		function Cj(css) {
+			let div = document.createElement("div");
+			div.className = css;
+			$("main").appendChild(div);
+			return div;
+		}
+	</script>
+
+</html>
